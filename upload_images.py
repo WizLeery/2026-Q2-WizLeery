@@ -17,7 +17,8 @@ API = "https://api.github.com"
 
 def api_call(method, path, data=None):
     url = f"{API}/repos/{OWNER}/{REPO}{path}"
-    headers = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github.v3+json", "Content-Type": "application/json", "User-Agent": "WizLeery-Portfolio"}
+    auth_scheme = "Bearer" if TOKEN.startswith("github_pat_") else "token"
+    headers = {"Authorization": f"{auth_scheme} {TOKEN}", "Accept": "application/vnd.github.v3+json", "Content-Type": "application/json", "User-Agent": "WizLeery-Portfolio"}
     req = urllib.request.Request(url, data=json.dumps(data).encode() if data else None, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req) as resp:
@@ -32,7 +33,8 @@ if not ref: print("Check your token."); sys.exit(1)
 latest_sha = ref["object"]["sha"]
 print(f"Current commit: {latest_sha[:8]}")
 
-files = sorted([f for f in os.listdir("images") if f.endswith(".jpg")])
+IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+files = sorted([f for f in os.listdir("images") if f.lower().endswith(IMG_EXTS)])
 print(f"Uploading {len(files)} images...\n")
 
 blobs = {}
@@ -48,6 +50,6 @@ if not blobs: print("No files uploaded."); sys.exit(1)
 
 commit = api_call("GET", f"/git/commits/{latest_sha}")
 tree = api_call("POST", "/git/trees", {"base_tree": commit["tree"]["sha"], "tree": [{"path": p, "mode": "100644", "type": "blob", "sha": s} for p, s in blobs.items()]})
-new_commit = api_call("POST", "/git/commits", {"message": "Add portfolio images", "parents": [latest_sha], "tree": tree["sha"]})
+new_commit = api_call("POST", "/git/commits", {"message": "E-commerce Visual Quarterly Summary", "parents": [latest_sha], "tree": tree["sha"]})
 api_call("PATCH", f"/git/refs/heads/{BRANCH}", {"sha": new_commit["sha"]})
 print(f"\nDone! {len(blobs)} images uploaded to {OWNER}/{REPO}")
